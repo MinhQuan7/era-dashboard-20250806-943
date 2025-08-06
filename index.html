@@ -1,0 +1,169 @@
+<html>
+<head>
+    <script src="https://www.unpkg.com/@eohjsc/era-widget@1.1.3/src/index.js"></script>
+    <style>
+        :root {
+            --primary: #00ff88;
+            --background: #0f172a;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--background);
+            font-family: 'Segoe UI', system-ui;
+            color: white;
+        }
+
+        .container {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .power-button {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(145deg, var(--background), #1e293b);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3),
+                       -5px -5px 15px rgba(255, 255, 255, 0.05);
+        }
+
+        .power-button.active {
+            background: linear-gradient(145deg, var(--primary), #00cc6a);
+            box-shadow: 0 0 25px rgba(0, 255, 136, 0.4),
+                       inset 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .power-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            opacity: 0;
+            background: radial-gradient(circle at center, 
+                      rgba(0, 255, 136, 0.4) 0%, 
+                      transparent 70%);
+            transition: opacity 0.3s ease;
+        }
+
+        .power-button:active::before {
+            opacity: 1;
+        }
+
+        .power-button span {
+            position: relative;
+            z-index: 1;
+            font-size: 1.2em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: linear-gradient(to right, #fff, #eee);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--glass);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button 
+            id="button-0"
+            class="power-button"
+            onclick="controlButton(0, !this.classList.contains('active'))"
+        >
+            <span>OFF</span>
+        </button>
+    </div>
+
+    <div class="loading-overlay" id="loading">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+        const eraWidget = new EraWidget();
+        let actionConfigs = new Array(2).fill(null);
+        let isConfigured = false;
+
+        eraWidget.init({
+            onConfiguration: (configuration) => {
+                console.log('E-Ra Configuration received:', configuration);
+                if (configuration.actions?.[0]) actionConfigs[0] = configuration.actions[0];
+                if (configuration.actions?.[1]) actionConfigs[1] = configuration.actions[1];
+                isConfigured = true;
+                document.getElementById('loading').style.display = 'none';
+            },
+            onValues: (values) => {
+                // Handle values update if needed
+            }
+        });
+
+        function controlButton(buttonIndex, isOn) {
+            if (!isConfigured) {
+                console.warn('Configuration pending');
+                document.getElementById('loading').style.display = 'flex';
+                return;
+            }
+
+            const actionIndex = (buttonIndex * 2) + (isOn ? 0 : 1);
+            if (actionConfigs[actionIndex]) {
+                eraWidget.triggerAction(actionConfigs[actionIndex].action, null, { value: isOn ? 1 : 0 });
+                updateButtonState(buttonIndex, isOn);
+            }
+        }
+
+        function updateButtonState(buttonIndex, isOn) {
+            const btn = document.getElementById(`button-${buttonIndex}`);
+            btn.classList.toggle('active', isOn);
+            btn.querySelector('span').textContent = isOn ? 'ON' : 'OFF';
+        }
+
+        // Initial loading state
+        document.getElementById('loading').style.display = 'flex';
+    </script>
+</body>
+</html>
